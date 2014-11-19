@@ -10,9 +10,12 @@ MoegirlConvert
 ## 使用方法
 `mgConvert.sh /path/source /path/destination width height /path/water`
 
-在 mediawiki 系统中，可以将 `mgConvert.sh` 用于 `$wgCustomConvertCommand` 变量并使用变量替换上面的参数，如
+在 mediawiki 系统中，可以将 `mgConvert.sh` 用于 `$wgCustomConvertCommand` 变量并使用变量替换上面的参数，例如
 
 `$wgCustomConvertCommand = "/var/html/mediawiki/extensions/MoegirlConvert/mgConvert.sh %s %d %w %h /var/html/mediawiki/extensions/MoegirlConvert/water.png";`
 
+## 注意事项
+* `convert` 对内存需求比较大，应将 `$wgMaxShellMemory` 设置大一些
+* 需要给 mgConvert.sh 设置运行权限
 
 
