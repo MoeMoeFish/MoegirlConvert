@@ -16,7 +16,7 @@ else
 	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF gif:- | composite -gravity NorthEast gif:- ${des} ${des}
 fi
 
-if [ ${width} -le 100 ]
+if [ ${width} -le 300 ]
 	then exit
 fi
 
