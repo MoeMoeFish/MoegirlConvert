@@ -23,7 +23,7 @@ function CleanExit() {
 if [ `identify -format "%n" ${src}` -eq 1 ]
 then	
 	# See if the file to be converted is formatted in JPEG
-	if [ `identify -format "%m" "${src}"` == "JPEG" ]
+	if [ `identify -format "%m" ${src}` == "JPEG" ]
 	then
 		convert ${src} -interlace Plane -resize ${width}x${height} ${des}
 	else
