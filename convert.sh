@@ -11,51 +11,60 @@ lockfile -1 -r15 conv.lock
 locked=$?
 # Doesn't matter if it is locked
 # Will commit to convert anyway
-function CleanExit() {
+CleanExit() {
     # If successfully locked, rm the file
-    if [ $locked -eq 0 ]
+    if ((locked == 0))
     then
         rm -f conv.lock
     fi
+    # exit # <- should I?
 }
 
+src_frames=$(identify -format "%n" "${src}")
+src_format=$(identify -format "%m" "${src}")
 
-if [ `identify -format "%n" ${src}` -eq 1 ]
-then	
-	# See if the file to be converted is formatted in JPEG
-	if [ `identify -format "%m" ${src}` == "JPEG" ]
-	then
-		convert ${src} -interlace Plane -resize ${width}x${height} ${des}
-	else
-		convert ${src} -resize ${width}x${height} ${des}
-	fi
-elif [ `identify -format "%n" ${src}` -le 10 ]
-then
-	convert ${src} -coalesce gif:- | convert gif:- -resize ${width}x${height} ${des}
-else
-	convert ${src}[0] -resize ${width}x${height} ${des}
-	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF gif:- | composite -gravity NorthEast gif:- ${des} ${des}
-fi
-
-if [ ${width} -le 300 ]
-	then CleanExit
-fi
-
-
-if [ `identify -format "%n" ${src}` -eq 1 ]
+if ((src_frames == 1))
 then
 	# See if the file to be converted is formatted in JPEG
-	if [ `identify -format "%m" ${src}` == "JPEG" ]
+	if [[ $src_format == "JPEG" ]]
 	then
-		composite -interlace Plane -gravity SouthEast -dissolve 50 ${watermark} ${des} ${des}
+		convert -resize "${width}x${height}" -interlace Plane -- "${src}" "${des}"
 	else
-		composite -gravity SouthEast -dissolve 50 ${watermark} ${des} ${des}
+		convert -resize "${width}x${height}" -- "${src}" "${des}"
 	fi
-elif [ `identify -format "%n" ${src}` -le 10 ]
+elif ((src_frames <= 10))
 then
-	convert ${des} -gravity SouthEast -geometry +0+0  null: ${watermark} -compose dissolve -define compose:args=50 -layers composite -layers optimize ${des};
+	convert -coalesce -- "${src}" gif:- | convert -resize "${width}x${height}" -- gif:- "${des}"
 else
-	composite -gravity SouthEast -dissolve 50 ${watermark} ${des} ${des}
+	convert -resize "${width}x${height}" -- "${src}"'[0]' "${des}"
+	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF gif:- |
+		composite -gravity NorthEast -- gif:- "${des}" "${des}"
+fi
+
+if ((width <= 300))
+then
+	CleanExit
+fi
+
+## watermark
+if ((src_frames == 1))
+then
+	# See if the file to be converted is formatted in JPEG
+	if [[ $src_format == "JPEG" ]]
+	then
+		composite -interlace Plane -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+	else
+		composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+	fi
+elif ((src_frames <= 10))
+then
+	convert -gravity SouthEast -geometry +0+0 \
+		-compose dissolve -define compose:args=50 \
+		-layers composite \
+		-layers optimize \
+		-- "${des}" "null:" "${watermark}" "${des}"
+else
+	composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
 fi
 CleanExit
 
