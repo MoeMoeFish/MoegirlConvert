@@ -28,13 +28,13 @@ then
 	# See if the file to be converted is formatted in JPEG
 	if [[ $src_format == "JPEG" ]]
 	then
-		convert -resize "${width}x${height}"__resize -interlace Plane -- "${src}" "${des}"
+		convert -resize "${width}x${height}" -interlace Plane -- "${src}" "${des}"
 	else
 		convert -resize "${width}x${height}" -- "${src}" "${des}"
 	fi
 elif ((src_frames <= 10))
 then
-	convert -coalesce -- "${src}" gif:- | __resize -- gif:- "${des}"
+	convert -coalesce -- "${src}" gif:- | convert -resize "${width}x${height}" -- gif:- "${des}"
 else
 	convert -resize "${width}x${height}" -- "${src}"'[0]' "${des}"
 	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF gif:- |
