@@ -17,8 +17,9 @@ CleanExit() {
 	then
 		rm -f conv.lock
 	fi
-	# exit # <- should I?
 }
+
+trap 'CleanExit; exit' INT TERM EXIT
 
 src_frames=$(identify -format "%n" "${src}")
 src_format=$(identify -format "%m" "${src}")
@@ -41,30 +42,29 @@ else
 		composite -gravity NorthEast -- gif:- "${des}" "${des}"
 fi
 
-if ((width <= 300))
-then
-	CleanExit
-fi
-
 ## watermark
-if ((src_frames == 1))
+if ((width > 300))
 then
-	# See if the file to be converted is formatted in JPEG
-	if [[ $src_format == "JPEG" ]]
+	if ((src_frames == 1))
 	then
-		composite -interlace Plane -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+		# See if the file to be converted is formatted in JPEG
+		if [[ $src_format == "JPEG" ]]
+		then
+			composite -interlace Plane -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+		else
+			composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+		fi
+	elif ((src_frames <= 10))
+	then
+		convert -gravity SouthEast -geometry +0+0 \
+			-compose dissolve -define compose:args=50 \
+			-layers composite \
+			-layers optimize \
+			-- "${des}" "null:" "${watermark}" "${des}"
 	else
 		composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
 	fi
-elif ((src_frames <= 10))
-then
-	convert -gravity SouthEast -geometry +0+0 \
-		-compose dissolve -define compose:args=50 \
-		-layers composite \
-		-layers optimize \
-		-- "${des}" "null:" "${watermark}" "${des}"
-else
-	composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
 fi
-CleanExit
 
+CleanExit
+trap - INT TERM EXIT
