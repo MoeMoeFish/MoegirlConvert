@@ -19,51 +19,60 @@ CleanExit() {
 	fi
 }
 
+set -e
 trap 'CleanExit; exit' INT TERM EXIT
 
-src_frames=$(identify -format "%n" "${src}")
-src_format=$(identify -format "%m" "${src}")
+src_frames=$(identify -format "%n" -- "${src}")
 
+# TODO: Should be the format of the dest file
+des_format=$(identify -format "%m" -- "${src}")
+
+src_size=$(du -k -- "${src}" | cut -f1)
+
+## resize
+# Always use MIFF as ImageMagick intermediate file format
 if ((src_frames == 1))
 then
-	# See if the file to be converted is formatted in JPEG
-	if [[ $src_format == "JPEG" ]]
-	then
-		convert -resize "${width}x${height}" -interlace Plane -- "${src}" "${des}"
-	else
-		convert -resize "${width}x${height}" -- "${src}" "${des}"
-	fi
+	convert -resize "${width}x${height}" -- "${src}" "miff:${des}"
 elif ((src_frames <= 10))
 then
-	convert -coalesce -- "${src}" gif:- | convert -resize "${width}x${height}" -- gif:- "${des}"
+	convert -coalesce -resize "${width}x${height}" -- "${src}" "miff:${des}"
 else
-	convert -resize "${width}x${height}" -- "${src}"'[0]' "${des}"
-	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF gif:- |
-		composite -gravity NorthEast -- gif:- "${des}" "${des}"
+	convert -resize "${width}x${height}" -- "${src}[0]" "miff:${des}"
+	convert -background green -size 30x20 -gravity center -fill white -font helvetica -pointsize 12 label:GIF miff:- |
+		composite -gravity NorthEast -- miff:- "miff:${des}" "miff:${des}"
+	src_frames='1'
 fi
 
-## watermark
+## add watermark
 if ((width > 300))
 then
 	if ((src_frames == 1))
 	then
-		# See if the file to be converted is formatted in JPEG
-		if [[ $src_format == "JPEG" ]]
-		then
-			composite -interlace Plane -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
-		else
-			composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
-		fi
-	elif ((src_frames <= 10))
-	then
+		composite -gravity SouthEast -dissolve 50 -- "${watermark}" "miff:${des}" "miff:${des}"
+	else
 		convert -gravity SouthEast -geometry +0+0 \
 			-compose dissolve -define compose:args=50 \
 			-layers composite \
-			-layers optimize \
-			-- "${des}" "null:" "${watermark}" "${des}"
-	else
-		composite -gravity SouthEast -dissolve 50 -- "${watermark}" "${des}" "${des}"
+			-- "miff:${des}" "null:" "${watermark}" "miff:${des}"
 	fi
+fi
+
+## write output
+# -interlace Plane and -interlace Line are exactly the same for JPEG/PNG
+if [[ "${des_format}" == 'JPEG' || "${des_format}" == 'PNG' ]]
+then
+	if ((src_size > 10))
+	then
+		convert -quality 85 -interlace Plane -- "miff:${des}" "${des}"
+	else
+		convert -interlace Plane -- "miff:${des}" "${des}"
+	fi
+elif ((src_frames > 1))
+then
+	convert -layers optimize -- "miff:${des}" "${des}"
+else
+	convert -- "miff:${des}" "${des}"
 fi
 
 CleanExit
