@@ -12,12 +12,12 @@ locked=$?
 # Doesn't matter if it is locked
 # Will commit to convert anyway
 CleanExit() {
-    # If successfully locked, rm the file
-    if ((locked == 0))
-    then
-        rm -f conv.lock
-    fi
-    # exit # <- should I?
+	# If successfully locked, rm the file
+	if ((locked == 0))
+	then
+		rm -f conv.lock
+	fi
+	# exit # <- should I?
 }
 
 src_frames=$(identify -format "%n" "${src}")
