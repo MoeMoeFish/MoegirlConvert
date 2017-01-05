@@ -1,11 +1,21 @@
+
 MoegirlConvert
 ==============
 用于 萌娘百科的图片缩略图转换
 
 ## Rule
-* 如果是 png, jpg 或单页的 gif, 直接缩图加水印
-* 如果是 gif 动图且小于 10 帧，缩图也为 gif 动图并加水印
-* 如果是 gif 动图且大于 10 帧，将 gif 的第 1 帧缩图并加水印，并在右上角加上 gif 标志，提示此图点开为动图
+* 判断图片类型
+  * 如果是jpg/jpeg/png
+    * 是否大于10K
+      * 是，使用 -resize -quality 85% -interlace line 生成渐进式图片progressive jpeg
+      * 否， -resize 缩图
+  * 如果是gif，判断有多少帧
+    * 小于等于10帧的gif，缩动图
+    * 大于10帧的gif，只缩第一张图
+  * 其他类型图片，直接缩图
+* 判断缩小的图片是否大于等于300px
+  * 是，添加图片水印
+  * 否，不加水印
 
 ## 使用方法
 `mgConvert.sh /path/source /path/destination width height /path/water`
